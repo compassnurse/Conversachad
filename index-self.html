@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ConversaTrait | Do You Actually Know Yourself?</title>
+<meta name="description" content="Find out who you really are — not who you think you are. Analyze your real conversations across 29+ frameworks.">
+<meta property="og:title" content="You Think You Know Yourself. Your Group Chat Says Otherwise.">
+<meta property="og:description" content="Upload a real conversation. Get the most honest personality analysis you've ever seen.">
+<meta property="og:type" content="website">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Space+Grotesk:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #06060f;
+    font-family: 'JetBrains Mono', 'SF Mono', monospace;
+    color: #e0e0f0;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    padding: 20px 16px;
+    -webkit-font-smoothing: antialiased;
+  }
+  #app { width: 100%; max-width: 440px; position: relative; }
+
+  .card {
+    background: linear-gradient(165deg, #0a0a1a 0%, #0d0d24 50%, #0a0a1a 100%);
+    border: 1px solid rgba(0,255,163,0.15);
+    border-radius: 12px;
+    padding: 32px 28px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 0 60px rgba(0,255,163,0.06), inset 0 1px 0 rgba(255,255,255,0.03);
+    opacity: 0; transform: translateY(8px);
+    transition: opacity 0.4s ease, transform 0.4s ease;
+  }
+  .card.visible { opacity: 1; transform: translateY(0); }
+  .scanline {
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0; pointer-events: none; z-index: 10;
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,255,163,0.015) 2px, rgba(0,255,163,0.015) 4px);
+  }
+  .glow { position: absolute; border-radius: 50%; pointer-events: none; }
+  .glow-br { bottom: -40px; right: -40px; width: 140px; height: 140px; background: radial-gradient(circle, rgba(0,255,163,0.06) 0%, transparent 70%); }
+  .glow-tl { top: -30px; left: -30px; width: 120px; height: 120px; background: radial-gradient(circle, rgba(0,255,163,0.05) 0%, transparent 70%); }
+
+  .dim { color: #5a5a7a; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 24px; }
+  .green { color: #00ffa3; }
+  .red { color: #ff003c; }
+  .amber { color: #ffb800; }
+  .muted { color: #8a8aaf; }
+
+  .headline { font-family: 'Space Grotesk', sans-serif; font-weight: 800; line-height: 1.15; letter-spacing: -0.5px; }
+
+  .step { opacity: 0; transform: translateY(12px); transition: all 0.6s ease; }
+  .step.show { opacity: 1; transform: translateY(0); }
+
+  .glitch { position: relative; display: inline-block; }
+  .glitch .g-r, .glitch .g-g { position: absolute; left: 0; top: 0; opacity: 0; pointer-events: none; }
+  .glitch.active .g-r { opacity: 0.7; left: 2px; top: -1px; clip-path: inset(10% 0 60% 0); color: #ff003c; }
+  .glitch.active .g-g { opacity: 0.7; left: -2px; top: 1px; clip-path: inset(50% 0 10% 0); color: #00ffa3; }
+
+  .btn-outline {
+    display: block; width: 100%; padding: 14px 28px; background: transparent;
+    border: 1px solid #00ffa3; color: #00ffa3;
+    font-family: 'JetBrains Mono', monospace; font-size: 12px;
+    letter-spacing: 2px; text-transform: uppercase; cursor: pointer;
+    border-radius: 6px; transition: all 0.25s ease; text-align: center;
+  }
+  .btn-outline:hover { background: rgba(0,255,163,0.1); box-shadow: 0 0 20px rgba(0,255,163,0.15); }
+
+  .btn-solid {
+    display: block; width: 100%; padding: 14px 28px; background: #00ffa3; border: none;
+    color: #0a0a1a; font-family: 'JetBrains Mono', monospace; font-size: 12px;
+    font-weight: 700; letter-spacing: 2px; text-transform: uppercase;
+    cursor: pointer; border-radius: 6px; transition: all 0.25s ease; text-align: center;
+    text-decoration: none;
+  }
+  .btn-solid:hover { box-shadow: 0 0 24px rgba(0,255,163,0.3); }
+
+  .btn-ghost {
+    background: none; border: none; color: #5a5a7a; font-size: 11px;
+    cursor: pointer; letter-spacing: 1px; text-transform: uppercase;
+    font-family: 'JetBrains Mono', monospace; margin-top: 14px;
+  }
+  .btn-ghost:hover { color: #8a8aaf; }
+
+  /* Slider */
+  .slider-group { margin-bottom: 22px; }
+  .slider-label { display: flex; justify-content: space-between; margin-bottom: 6px; }
+  .slider-label span:first-child { font-size: 12px; text-transform: uppercase; letter-spacing: 1.2px; color: #c0c0d8; }
+  .slider-label span:last-child { font-size: 13px; font-weight: 700; color: #00ffa3; }
+  input[type="range"] {
+    -webkit-appearance: none; width: 100%; height: 6px; border-radius: 3px;
+    background: #1a1a2e; outline: none;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 20px; height: 20px; border-radius: 50%;
+    background: #00ffa3; cursor: pointer; border: 2px solid #0a0a1a;
+    box-shadow: 0 0 10px rgba(0,255,163,0.3);
+  }
+  input[type="range"]::-moz-range-thumb {
+    width: 20px; height: 20px; border-radius: 50%;
+    background: #00ffa3; cursor: pointer; border: 2px solid #0a0a1a;
+    box-shadow: 0 0 10px rgba(0,255,163,0.3);
+  }
+
+  /* Dossier bars */
+  .bar-track { width: 100%; height: 8px; background: #1a1a2e; border-radius: 4px; overflow: hidden; position: relative; }
+  .bar-fill { height: 100%; border-radius: 4px; width: 0; transition: width 1.2s cubic-bezier(0.22, 1, 0.36, 1); }
+  .trait-row { margin-bottom: 16px; }
+  .trait-header { display: flex; justify-content: space-between; margin-bottom: 5px; }
+  .trait-name { font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: #8a8aaf; }
+  .trait-vals { font-size: 12px; }
+
+  /* Verdict box */
+  .verdict-box {
+    background: rgba(0,255,163,0.04); border: 1px solid rgba(0,255,163,0.12);
+    border-radius: 8px; padding: 16px; margin-bottom: 20px;
+  }
+  .verdict-title { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: #5a5a7a; margin-bottom: 10px; }
+  .verdict-item { font-size: 12px; color: #e0e0f0; margin-bottom: 8px; padding-left: 18px; position: relative; line-height: 1.5; }
+  .verdict-item:last-child { margin-bottom: 0; }
+
+  .surprise-box {
+    background: rgba(255,184,0,0.06); border: 1px solid rgba(255,184,0,0.2);
+    border-radius: 8px; padding: 16px; margin-bottom: 24px;
+  }
+
+  /* Chat bubbles */
+  .chat-feed { margin-bottom: 24px; }
+  .chat-msg {
+    max-width: 85%; padding: 10px 14px; border-radius: 12px; margin-bottom: 8px;
+    font-size: 12px; line-height: 1.5; opacity: 0; transform: translateY(8px);
+    transition: all 0.4s ease;
+  }
+  .chat-msg.show { opacity: 1; transform: translateY(0); }
+  .chat-msg.them {
+    background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08);
+    border-bottom-left-radius: 4px; margin-right: auto; color: #c0c0d8;
+  }
+  .chat-msg.you {
+    background: rgba(0,255,163,0.08); border: 1px solid rgba(0,255,163,0.15);
+    border-bottom-right-radius: 4px; margin-left: auto; color: #e0e0f0;
+  }
+  .chat-sender { font-size: 9px; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 4px; }
+  .chat-msg.them .chat-sender { color: #5a5a7a; }
+  .chat-msg.you .chat-sender { color: #00ffa3; }
+
+  /* Annotation */
+  .annotation {
+    font-size: 10px; letter-spacing: 1px; text-transform: uppercase;
+    padding: 6px 12px; border-radius: 4px; margin-bottom: 8px;
+    max-width: 85%; opacity: 0; transform: translateY(8px);
+    transition: all 0.4s ease;
+  }
+  .annotation.show { opacity: 1; transform: translateY(0); }
+  .annotation.insight {
+    background: rgba(0,255,163,0.08); border: 1px solid rgba(0,255,163,0.2);
+    color: #00ffa3; margin-left: auto;
+  }
+
+  /* Pulsing cursor */
+  @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0; } }
+  .cursor { display: inline-block; width: 8px; height: 16px; background: #00ffa3; margin-left: 4px; animation: blink 1s step-end infinite; vertical-align: middle; }
+
+  /* Feature grid */
+  .feature-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 28px; }
+  .feature-cell {
+    background: rgba(0,255,163,0.04); border: 1px solid rgba(0,255,163,0.1);
+    border-radius: 6px; padding: 14px 12px; text-align: center;
+  }
+  .feature-cell .f-icon { font-size: 20px; margin-bottom: 6px; }
+  .feature-cell .f-line1 { font-size: 13px; font-weight: 700; color: #e0e0f0; }
+  .feature-cell .f-line2 { font-size: 10px; color: #5a5a7a; text-transform: uppercase; letter-spacing: 1px; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+(function() {
+
+  const BIG5 = ['openness','conscientiousness','extraversion','agreeableness','neuroticism'];
+  const BIG5_LABELS = { openness:'Openness', conscientiousness:'Conscientiousness', extraversion:'Extraversion', agreeableness:'Agreeableness', neuroticism:'Neuroticism' };
+
+  const realityProfiles = [
+    // profile varies based on self-scores to create interesting gaps
+    { openness: 82, conscientiousness: 48, extraversion: 63, agreeableness: 55, neuroticism: 61 },
+    { openness: 71, conscientiousness: 67, extraversion: 38, agreeableness: 79, neuroticism: 44 },
+  ];
+
+  const chatMessages = [
+    { sender: 'them', name: 'Alex', text: "hey are you coming saturday? everyone's gonna be there" },
+    { sender: 'you', name: 'You', text: "yeah definitely!! wouldn't miss it 🙌" },
+    { sender: 'them', name: 'Alex', text: "nice, can you bring that playlist you made?" },
+    { sender: 'you', name: 'You', text: "oh lol I actually never finished it, I'll throw something together" },
+    { sender: 'you', name: 'You', text: "actually nvm I'll just use spotify. who else is coming?" },
+  ];
+
+  const chatAnnotations = [
+    { afterMsg: 1, text: '↑ high agreeableness — fast yes, no hesitation' },
+    { afterMsg: 3, text: '↑ low conscientiousness — unfinished follow-through' },
+    { afterMsg: 4, text: '↑ openness — quick pivot, no attachment to plan' },
+  ];
+
+  const verdicts = {
+    aligned: [
+      { icon: '✓', color: '#00ffa3', text: 'Your openness score tracks — you pivot fast and chase novelty' },
+      { icon: '✓', color: '#00ffa3', text: 'Agreeableness confirmed — you default to "yes" before thinking' },
+    ],
+    surprise: [
+      { icon: '⚡', color: '#ffb800', text: "You rated your conscientiousness high. Your conversations say otherwise — you abandon plans mid-sentence." },
+      { icon: '⚡', color: '#ffb800', text: "You think you're lower neuroticism than you are. The data shows more hedging and second-guessing than you'd admit." },
+    ],
+  };
+
+  const app = document.getElementById('app');
+  let userScores = { openness: 75, conscientiousness: 70, extraversion: 65, agreeableness: 60, neuroticism: 40 };
+
+  function show(el) { requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('visible'))); }
+  function showEl(el) { requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('show'))); }
+
+  function startGlitch(el) {
+    if (!el) return;
+    const run = () => { el.classList.add('active'); setTimeout(() => el.classList.remove('active'), 150); };
+    setInterval(run, 3000 + Math.random() * 4000);
+  }
+
+  function fadeToScreen(showFn) {
+    const card = app.querySelector('.card');
+    if (card) { card.classList.remove('visible'); setTimeout(showFn, 350); }
+    else showFn();
+  }
+
+  function computeReality() {
+    // blend the two profiles and offset from user scores to create interesting gaps
+    const p = realityProfiles[0];
+    const result = {};
+    BIG5.forEach(t => {
+      const drift = (p[t] - 60) + (Math.random() * 16 - 8);
+      result[t] = Math.max(15, Math.min(95, Math.round(p[t] + drift * 0.3)));
+    });
+    // force some dramatic gaps
+    result.conscientiousness = Math.max(20, Math.min(55, userScores.conscientiousness - 22 + Math.round(Math.random()*10)));
+    result.neuroticism = Math.min(85, Math.max(35, userScores.neuroticism + 18 + Math.round(Math.random()*10)));
+    return result;
+  }
+
+  // ── SCREEN 1: HOOK ──
+  function showHook() {
+    app.innerHTML = '';
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML = `
+      <div class="scanline"></div>
+      <div class="glow glow-br"></div>
+      <div class="dim"><span class="green">▌</span> conversatrait // self</div>
+      <div style="min-height:240px">
+        <div class="step" id="h0">
+          <div class="headline" style="font-size:26px;margin-bottom:16px">
+            You think you know yourself.<br>
+            <span class="glitch" id="glitch1"><span class="amber">Your group chat</span><span class="g-r">Your group chat</span><span class="g-g">Your group chat</span></span> says otherwise.
+          </div>
+        </div>
+        <div class="step" id="h1">
+          <div style="font-size:13px;color:#8a8aaf;line-height:1.6;margin-bottom:8px">
+            Every personality quiz asks you to <em>describe</em> yourself.
+          </div>
+        </div>
+        <div class="step" id="h2">
+          <div style="font-size:14px;color:#e0e0f0;margin-bottom:8px;line-height:1.5">
+            We skip that part entirely.
+          </div>
+          <div style="font-size:13px;color:#8a8aaf;line-height:1.6;margin-bottom:28px">
+            Upload a real conversation — group chat, DMs, whatever — and we'll show you who you <span class="green">actually</span> are across 29+ frameworks.<span class="cursor"></span>
+          </div>
+        </div>
+        <div class="step" id="h3">
+          <div style="font-size:12px;color:#5a5a7a;margin-bottom:20px;line-height:1.6">
+            But first — tell us who you <em>think</em> you are.<br>Let's see how close you get.
+          </div>
+        </div>
+      </div>
+      <div class="step" id="h4">
+        <button class="btn-outline" id="hookCta">Rate yourself →</button>
+      </div>
+    `;
+    app.appendChild(card);
+    show(card);
+    startGlitch(document.getElementById('glitch1'));
+    [800, 2000, 3200, 4200, 4200].forEach((d, i) => {
+      setTimeout(() => document.getElementById('h'+i)?.classList.add('show'), d);
+    });
+    document.getElementById('hookCta').addEventListener('click', () => fadeToScreen(showRate));
+  }
+
+  // ── SCREEN 2: SELF-RATE ──
+  function showRate() {
+    app.innerHTML = '';
+    const card = document.createElement('div');
+    card.className = 'card';
+    let sliders = '';
+    BIG5.forEach(t => {
+      sliders += `
+        <div class="slider-group">
+          <div class="slider-label">
+            <span>${BIG5_LABELS[t]}</span>
+            <span id="val-${t}">${userScores[t]}%</span>
+          </div>
+          <input type="range" min="10" max="95" value="${userScores[t]}" data-trait="${t}" class="trait-slider">
+        </div>`;
+    });
+    card.innerHTML = `
+      <div class="scanline"></div>
+      <div class="dim"><span class="green">▌</span> self-assessment // big five</div>
+      <div class="headline" style="font-size:20px;margin-bottom:8px">How well do you know yourself?</div>
+      <div style="font-size:12px;color:#5a5a7a;margin-bottom:24px;line-height:1.5">
+        Drag each slider to where you'd honestly rate yourself. Be real — nobody sees this but you.
+      </div>
+      ${sliders}
+      <button class="btn-outline" id="rateCta" style="margin-top:8px">Lock it in →</button>
+    `;
+    app.appendChild(card);
+    show(card);
+    card.querySelectorAll('.trait-slider').forEach(s => {
+      s.addEventListener('input', function() {
+        const t = this.dataset.trait;
+        userScores[t] = parseInt(this.value);
+        document.getElementById('val-'+t).textContent = this.value + '%';
+      });
+    });
+    document.getElementById('rateCta').addEventListener('click', () => fadeToScreen(showAnalyze));
+  }
+
+  // ── SCREEN 3: FAKE ANALYSIS ──
+  function showAnalyze() {
+    app.innerHTML = '';
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML = `
+      <div class="scanline"></div>
+      <div class="dim"><span class="green">▌</span> analyzing // conversation data</div>
+      <div class="headline" style="font-size:18px;margin-bottom:20px">
+        Now let's see what your <span class="green">actual messages</span> say.
+      </div>
+      <div style="font-size:11px;color:#5a5a7a;margin-bottom:16px;letter-spacing:1px;text-transform:uppercase">
+        sample conversation — decoded in real time
+      </div>
+      <div class="chat-feed" id="chatFeed"></div>
+      <div class="step" id="analyzeCta" style="margin-top:8px">
+        <button class="btn-outline" id="seeResults">See your real scores →</button>
+      </div>
+    `;
+    app.appendChild(card);
+    show(card);
+
+    const feed = document.getElementById('chatFeed');
+    let delay = 600;
+    const allItems = [];
+    chatMessages.forEach((msg, i) => {
+      // message
+      allItems.push({ type: 'msg', delay, data: msg });
+      delay += 900;
+      // annotation after this message?
+      const ann = chatAnnotations.find(a => a.afterMsg === i);
+      if (ann) {
+        allItems.push({ type: 'ann', delay, data: ann });
+        delay += 700;
+      }
+    });
+
+    allItems.forEach(item => {
+      if (item.type === 'msg') {
+        const el = document.createElement('div');
+        el.className = `chat-msg ${item.data.sender}`;
+        el.innerHTML = `<div class="chat-sender">${item.data.name}</div>${item.data.text}`;
+        feed.appendChild(el);
+        setTimeout(() => showEl(el), item.delay);
+      } else {
+        const el = document.createElement('div');
+        el.className = 'annotation insight';
+        el.textContent = item.data.text;
+        feed.appendChild(el);
+        setTimeout(() => showEl(el), item.delay);
+      }
+    });
+
+    setTimeout(() => document.getElementById('analyzeCta')?.classList.add('show'), delay + 400);
+    document.getElementById('seeResults').addEventListener('click', () => fadeToScreen(showDossier));
+  }
+
+  // ── SCREEN 4: DOSSIER REVEAL ──
+  function showDossier() {
+    app.innerHTML = '';
+    const reality = computeReality();
+    const card = document.createElement('div');
+    card.className = 'card';
+
+    let traitRows = '';
+    BIG5.forEach((t, i) => {
+      const self = userScores[t];
+      const real = reality[t];
+      const gap = Math.abs(self - real);
+      let gapColor = '#00ffa3'; let gapLabel = 'ALIGNED';
+      if (gap > 20) { gapColor = '#ff003c'; gapLabel = 'MISMATCH'; }
+      else if (gap > 10) { gapColor = '#ffb800'; gapLabel = 'DRIFT'; }
+      traitRows += `
+        <div class="trait-row">
+          <div class="trait-header">
+            <span class="trait-name">${BIG5_LABELS[t]}</span>
+            <span class="trait-vals" style="color:${gapColor}">${self}% → ${real}% <span style="font-size:9px;letter-spacing:1px">${gapLabel}</span></span>
+          </div>
+          <div style="position:relative">
+            <div class="bar-track"><div class="bar-fill" style="background:rgba(0,255,163,0.2)" data-target="${self}" data-delay="${i*150}"></div></div>
+            <div style="position:absolute;top:0;left:0;width:100%;height:100%">
+              <div class="bar-track" style="background:transparent"><div class="bar-fill" style="background:${gapColor}" data-target="${real}" data-delay="${i*200+400}"></div></div>
+            </div>
+          </div>
+        </div>`;
+    });
+
+    card.innerHTML = `
+      <div class="scanline"></div>
+      <div class="glow glow-tl"></div>
+      <div class="dim"><span class="green">▌</span> dossier // your results</div>
+      <div class="headline" style="font-size:20px;margin-bottom:6px">Your self-image vs. reality.</div>
+      <div style="font-size:12px;color:#5a5a7a;margin-bottom:20px">
+        <span class="green">Faded</span> = what you said &nbsp; <span class="amber">Color</span> = what your messages show
+      </div>
+      ${traitRows}
+      <div id="dossierDetails" style="opacity:0;transition:opacity 0.6s ease">
+        <div class="verdict-box">
+          <div class="verdict-title">✓ where you nailed it</div>
+          ${verdicts.aligned.map(v => `<div class="verdict-item" style="color:${v.color}"><span style="position:absolute;left:0">${v.icon}</span> ${v.text}</div>`).join('')}
+        </div>
+        <div class="surprise-box">
+          <div class="verdict-title" style="color:#ffb800">⚡ where you were wrong</div>
+          ${verdicts.surprise.map(v => `<div class="verdict-item" style="color:${v.color}"><span style="position:absolute;left:0">${v.icon}</span> ${v.text}</div>`).join('')}
+        </div>
+        <div style="font-size:12px;color:#8a8aaf;line-height:1.6;margin-bottom:24px;text-align:center">
+          This was a <span class="green">demo</span> with sample data.<br>
+          Want the real thing? Upload your own conversations.
+        </div>
+        <button class="btn-solid" id="dossierCta">Get your real dossier — free →</button>
+        <div style="text-align:center"><button class="btn-ghost" id="replayBtn">↺ replay</button></div>
+      </div>
+    `;
+    app.appendChild(card);
+    show(card);
+
+    // animate bars
+    setTimeout(() => {
+      card.querySelectorAll('.bar-fill').forEach(bar => {
+        const d = parseInt(bar.dataset.delay) || 0;
+        setTimeout(() => { bar.style.width = bar.dataset.target + '%'; }, d);
+      });
+    }, 100);
+
+    // show details after bars fill
+    setTimeout(() => {
+      const det = document.getElementById('dossierDetails');
+      if (det) det.style.opacity = '1';
+    }, 2200);
+
+    document.getElementById('dossierCta')?.addEventListener('click', () => fadeToScreen(showCTA));
+    document.getElementById('replayBtn')?.addEventListener('click', () => fadeToScreen(showHook));
+  }
+
+  // ── SCREEN 5: FINAL CTA ──
+  function showCTA() {
+    app.innerHTML = '';
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML = `
+      <div class="scanline"></div>
+      <div class="glow glow-br"></div>
+      <div class="dim"><span class="green">▌</span> conversatrait // know yourself</div>
+      <div class="headline" style="font-size:22px;margin-bottom:12px">
+        Stop guessing.<br>
+        <span class="green">Read your own dossier.</span>
+      </div>
+      <div style="font-size:13px;color:#8a8aaf;line-height:1.7;margin-bottom:28px">
+        Upload any conversation — group chat, DMs, work Slack, family thread — and get a full personality dossier built from 29+ analytical frameworks. No surveys. No self-report bias. Just who you actually are, decoded from how you actually talk.
+      </div>
+      <div class="feature-grid">
+        <div class="feature-cell"><div class="f-icon">💬</div><div class="f-line1">Any chat</div><div class="f-line2">DMs, groups, Slack</div></div>
+        <div class="feature-cell"><div class="f-icon">🧠</div><div class="f-line1">29+</div><div class="f-line2">frameworks</div></div>
+        <div class="feature-cell"><div class="f-icon">🎮</div><div class="f-line1">Dossier</div><div class="f-line2">video-game style</div></div>
+        <div class="feature-cell"><div class="f-icon">⚡</div><div class="f-line1">5 minutes</div><div class="f-line2">to results</div></div>
+      </div>
+      <a href="https://conversatrait.com" target="_blank" rel="noopener noreferrer" class="btn-solid">
+        Try it free — 5 credits
+      </a>
+      <div style="text-align:center"><button class="btn-ghost" id="replayBtn2">↺ replay</button></div>
+    `;
+    app.appendChild(card);
+    show(card);
+    document.getElementById('replayBtn2').addEventListener('click', () => fadeToScreen(showHook));
+  }
+
+  // Boot
+  showHook();
+
+})();
+</script>
+</body>
+</html>
